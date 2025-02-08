@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"strconv"
@@ -11,7 +13,7 @@ import (
 )
 
 type Response struct {
-	Number     int      `json:"number"`
+	Number     float64  `json:"number"`
 	IsPrime    bool     `json:"is_prime"`
 	IsPerfect  bool     `json:"is_perfect"`
 	Properties []string `json:"properties"`
@@ -66,6 +68,7 @@ func isArmstrong(n int) bool {
 
 func digitSum(n int) int {
 	sum := 0
+	n = int(math.Abs(float64(n))) // Ensure negative numbers are handled correctly
 	for n > 0 {
 		sum += n % 10
 		n /= 10
@@ -73,36 +76,53 @@ func digitSum(n int) int {
 	return sum
 }
 
+func getFunFact(n float64) string {
+	url := fmt.Sprintf("http://numbersapi.com/%v", n)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Sprintf("Could not fetch fact for %v", n)
+	}
+	defer resp.Body.Close()
+	
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Sprintf("Error reading fact for %v", n)
+	}
+	return string(body)
+}
+
 func classifyNumber(w http.ResponseWriter, r *http.Request) {
 	numberStr := r.URL.Query().Get("number")
 	if numberStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Number: "", Error: true})
 		return
 	}
 
-	n, err := strconv.Atoi(numberStr)
+	n, err := strconv.ParseFloat(numberStr, 64)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Number: numberStr, Error: true})
 		return
 	}
 
 	properties := []string{}
-	if n%2 != 0 {
+	if int(n)%2 != 0 {
 		properties = append(properties, "odd")
 	} else {
 		properties = append(properties, "even")
 	}
-	if isArmstrong(n) {
+	if n == float64(int(n)) && isArmstrong(int(n)) {
 		properties = append(properties, "armstrong")
 	}
-	
+
 	response := Response{
 		Number:     n,
-		IsPrime:    isPrime(n),
-		IsPerfect:  isPerfect(n),
+		IsPrime:    isPrime(int(n)),
+		IsPerfect:  isPerfect(int(n)),
 		Properties: properties,
-		DigitSum:   digitSum(n),
-		FunFact:    strconv.Itoa(n) + " is an interesting number!",
+		DigitSum:   digitSum(int(n)),
+		FunFact:    getFunFact(n),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -116,3 +136,4 @@ func main() {
 	handler := cors.AllowAll().Handler(r)
 	http.ListenAndServe(":8000", handler)
 }
+
