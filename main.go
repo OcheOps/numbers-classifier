@@ -92,6 +92,7 @@ func getFunFact(n float64) string {
 }
 
 func classifyNumber(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json") // Ensure JSON response
 	numberStr := r.URL.Query().Get("number")
 	if numberStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -125,7 +126,7 @@ func classifyNumber(w http.ResponseWriter, r *http.Request) {
 		FunFact:    getFunFact(n),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
 
