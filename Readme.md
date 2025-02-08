@@ -49,7 +49,7 @@ The **Number Classification API** is a simple web service built in Golang that c
 
 ### Steps to Run Locally
 ```sh
-git clone https://github.com/your-repo/number-classifier.git
+git clone https://github.com/OcheOps/numbers-classifier.git
 cd number-classifier
 go mod tidy
 go run main.go
